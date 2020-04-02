@@ -1,6 +1,6 @@
 # Task Scheduling Solvers
 
-Notebooks and scripts for constructing precedence-constrained tasks.
+Notebooks and scripts for constructing schedules for precedence-constrained tasks.
 
 
-Includes GETF and LS as heuristic solvers and a Gekko solver as an optimal solver.
+Includes GETF as an heuristic solver and a Gekko solver as an optimal solver.
