@@ -131,9 +131,6 @@ def get_makespan(task_process_time, machine_task_list):
 
     return makespan
 
-
-
-
 # The following helper functions solve makepan + energy, not T + E
 
 def init_solver_original(v, machine_task_list):
@@ -182,10 +179,39 @@ def solver_results_original(m, s, P, M1, M2, verbose=True):
 
     return s, M1, M2, P,  task_process_time
 
+def v_helper(num_tasks, machine_task_list, t):
+    v = [1 for i in range(num_tasks)]
+
+    for lst in machine_task_list:
+        for i in range (len(lst)):
+            waited = False
+            waited_start = None
+            #task is first to run on machine
+            if i == 0:
+                if t[lst[i]][0] != 0:
+                    waited = True
+                    waited_start = machine_task_list[lst[i]] 
+            else:
+                if t[lst[i]][0]!= t[lst[i - 1]][1]:
+                    waited = True
+                    waited_start = machine_task_list[lst[i]] 
+            
+            if not waited:
+                for j in range(0, i):
+                    v[lst[j]] += 1
+                    
+            else:
+                for machine in range(self.m):
+                            if machine != mj:
+                                for index, task in enumerate(machine_task_list[machine]):
+                                    if t[task][0] == t[prev_task][1]:
+                                        for j in range(0, index):
+                                            v[lst[j]] += 1
 
 
-
-
+    return v
+                                        
+                                        
 
 # Example of using GEKKO
 

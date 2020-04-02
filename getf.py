@@ -52,7 +52,7 @@ class GETF:
         # Run getf on the data
         self.h, self.t, self.task_process_time, self.machine_task_list = self.getf()
         self.cost = self.compute_cost()
-        self.graph_visual = self.make_graph_visual()
+        # self.graph_visual = self.make_graph_visual()
         self.assignment_visual = self.make_assignment_visual()
 
         
@@ -499,11 +499,39 @@ class GETF:
             task_process_time[j] = float(self.task_units[j]) / float(self.machine_speeds[mj])
             t[j][0] = tj
             t[j][1] = tj + task_process_time[j]
+            
+            
+            machine_task_list[mj].append(j)
+
+
+            # Take away unnuccessary idle time; later t will be used to construct with f_i is
+            if len(machine_task_list[mj]) > 1:
+                prev_task = machine_task_list[mj][len(machine_task_list[mj]) - 2]
+                
+
+                relax = False
+
+                if t[prev_task][1] != t[j][0]:
+
+                    for machine in range(self.m):
+                        if machine != mj:
+                            for task in machine_task_list[machine]:
+                                if t[task][0] == t[prev_task][1]:
+                                    if task not in self.G.successors(prev_task):
+                                        relax = True
+
+                    if relax:
+                        t[prev_task][1] = tj
+         
+
+
+
+
             machine_etf[mj] = tj + task_process_time[j]
             
             done.append(j)
 
-            machine_task_list[mj].append(j)
+            
 
             A.remove(j)
 
