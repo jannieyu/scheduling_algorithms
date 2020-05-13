@@ -6,18 +6,15 @@ import math
 import matplotlib.pyplot as plt
 
 
-
-class Test:
+class Test_old:
 
     def __init__ (self, \
-        num_tasks,
-        num_machines, 
-        num_edges,
-        tie_breaking_rule=None, \
-        is_etf=True, \
-        random=False, \
-       
-        ):
+        task_units, \
+        task_transfer_units, \
+        machine_speeds, \
+        machine_comm_bandwidths, \
+        tie_breaking_rule, \
+        is_etf=True):
         """
         task_units: Length n list of computation units for each task.
         task_transfer_units: Dictionary containing the dependencies and linkages
@@ -30,39 +27,23 @@ class Test:
         """
 
         self.tie_breaking_rule = tie_breaking_rule
-        self.machine_speeds = [1 for _ in range(num_machines)]
-        
+        self.machine_speeds = machine_speeds
+        self.machine_comm_bandwidths = machine_comm_bandwidths
+        self.task_units = task_units
+
+        # As given in the paper, n: number of tasks (i.e. nodes)
+        self.n = len(self.task_units)
+
         # m: Number of machines
-        self.m = num_machines
-        self.n = num_tasks
+        self.m = len(self.machine_speeds)
 
         self.remaining_nodes_list = [0 for _ in range(self.n)]
-        self.G = self.random_dag(num_tasks, num_edges)
 
-
-        
-
-        # # Build DAG called G that contains task computation and info transfer
-        
-        # if random:
-        #     self.n = nodes
-        #     self.remaining_nodes_list = [0 for _ in range(self.n)]
-        #     self.G = self.random_dag(nodes, edges)
-        # else:
-        #     self.n = len(self.task_units)
-        #     self.remaining_nodes_list = [0 for _ in range(self.n)]
-        #     self.G = self.constructGraph(task_transfer_units)
-        #     # As given in the paper, n: number of tasks (i.e. nodes)
-            
-
-        self.task_units =  [1 for _ in range(self.n)]
-
+        # Build DAG called G that contains task computation and info transfer
+        self.constructGraph(task_transfer_units)
 
         # Construct group assignment f
         self.group_assignment(is_etf)
-
-        # print(self.machine_speeds)
-        # print(self.task_units)
 
         # Run getf on the data
         self.h, self.t, self.task_process_time, self.machine_task_list = self.getf()
@@ -71,40 +52,14 @@ class Test:
 
         self.task_prev = self.construct_prev_link()
 
+
         self.cost = self.compute_cost()
-        #self.graph_visual = self.make_graph_visual()
+        # self.graph_visual = self.make_graph_visual()
         self.assignment_visual = self.make_assignment_visual()
 
         self.time_chunks = self.make_time_chunks()
 
-
-    def random_dag(self, nodes, edges):
-        """Generate a random Directed Acyclic Graph (DAG) with a given number of nodes and edges."""
-        G = nx.DiGraph()
-        for i in range(nodes):
-            G.add_node(i)
-        while edges > 0:
-            a = random.randint(0,nodes-1)
-            b=a
-            while b==a:
-                b = random.randint(0,nodes-1)
-            G.add_edge(a,b)
-            if nx.is_directed_acyclic_graph(G):
-                edges -= 1
-            else:
-                # we closed a loop!
-                G.remove_edge(a,b)
-
-
-        for node in list(G.nodes):
-            self.remaining_nodes_list[node] = len(nx.algorithms.dag.descendants(G, node)) + 1
-
-
-        return G    
-
-
-
-
+        
 
     def power(self, speed):
         return speed ** 2
@@ -142,7 +97,6 @@ class Test:
 
         return prev_dict
 
-
     def make_time_chunks(self):
        
        
@@ -176,6 +130,7 @@ class Test:
 
 
         return machine_labels
+        
 
 
     def make_assignment_visual(self):
@@ -203,7 +158,7 @@ class Test:
         for i in range(len(machine_data)):
             for j in range(len(machine_data[i]), segments):
                 machine_data[i].append(0)
-                machine_labels[i].append('')
+                machine_labels[i].append('idle')
 
         data = []
         for s in range(segments):
@@ -231,7 +186,6 @@ class Test:
                 bl = patch.get_xy()
                 x = 0.5*patch.get_width() + bl[0]
                 y = 0.5*patch.get_height() + bl[1]
-
                 if j == len(patch_handles):
                     if machine_labels[i][j] == 'idle':
                         ax.text(x,y, '', ha='center')
@@ -243,7 +197,7 @@ class Test:
         ax.set_xlabel('Time')
         plt.show()
 
-        # print(machine_labels)
+
 
         
 
@@ -254,7 +208,7 @@ class Test:
         for i in range(0, self.n):
             labels[i] = str(i)
 
-        pos=nx.circular_layout(G)
+        pos=nx.planar_layout(G)
         nx.draw(G, pos, nodecolor='y',edge_color='k')
         nx.draw_networkx_labels(G, pos, labels, font_size=20, font_color='y')
         plt.axis('off')
@@ -273,11 +227,11 @@ class Test:
             Denotes the dependencies between various tasks
         """
 
-        G = nx.DiGraph()
+        self.G = nx.DiGraph()
 
         # Add all nodes. This accounts for lone nodes with no dependencies or children.
         for i in range(self.n):
-            G.add_node(i)
+            self.G.add_node(i)
 
 
 
@@ -285,16 +239,14 @@ class Test:
         for nodes, weight in task_transfer_units.items():
             # Ensure that source and desk are tasks numbered from - to n-1
             source, dest = nodes
-            G.add_weighted_edges_from([(source, dest, weight)])
+            self.G.add_weighted_edges_from([(source, dest, weight)])
 
-        for node in list(G.nodes):
-            self.remaining_nodes_list[node] = len(nx.algorithms.dag.descendants(G, node)) + 1
+        for node in list(self.G.nodes):
+            self.remaining_nodes_list[node] = len(nx.algorithms.dag.descendants(self.G, node)) + 1
 
         # Assert that graph is directed and acyclic
-        if not nx.algorithms.dag.is_directed_acyclic_graph(G):
+        if not nx.algorithms.dag.is_directed_acyclic_graph(self.G):
             print("Graph is not directed and acyclic!!!")
-
-        return G
 
 
     def group_assignment(self, is_etf):
@@ -362,7 +314,7 @@ class Test:
                             machine_group_speeds[k] += self.machine_speeds[i]
                             break
 
-            # print(machine_groups)
+            print(machine_groups)
         # Formulate a LP and solve it
         success = False
         try:
@@ -861,6 +813,8 @@ class Test:
                     
     
         return machine_task_list[0]
+
+
 
 
 

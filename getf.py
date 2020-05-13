@@ -244,7 +244,7 @@ class GETF:
                             machine_group_speeds[k] += self.machine_speeds[i]
                             break
 
-            print(machine_groups)
+            # print(machine_groups)
         # Formulate a LP and solve it
         success = False
         try:
